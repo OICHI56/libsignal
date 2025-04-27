@@ -1,9 +1,7 @@
-v0.69.0
+v0.70.1
 
-- Net: Remove the fallback connect code paths for CDSI. This is a breaking change.
+- CDSI enclave updated for production.
 
-- backups: Validate ChatFolder::id
+- Java: remove some test-only functions from the public API.
 
-- Node: GroupIdentifier now has a custom toString() (to its base64 representation)
-
-- Net: onConnectionInterrupted will now pass along ConnectedElsewhere and ConnectionInvalidated as disconnection reasons, when applicable.
+- Rust: bump rand crate to v0.9.0

@@ -25,7 +25,7 @@ use libsignal_net_infra::{
 };
 use nonzero_ext::nonzero;
 use rand::seq::SliceRandom;
-use rand::{thread_rng, Rng};
+use rand::{rng, Rng};
 
 use crate::certs::{PROXY_G_ROOT_CERTIFICATES, SIGNAL_ROOT_CERTIFICATES};
 use crate::enclave::{Cdsi, EnclaveEndpoint, EndpointParams, MrEnclave, SgxPreQuantum};
@@ -174,7 +174,7 @@ pub const PROXY_CONFIG_G: ProxyConfig = ProxyConfig {
 };
 
 pub(crate) const ENDPOINT_PARAMS_CDSI_STAGING: EndpointParams<'static, Cdsi> = EndpointParams {
-    mr_enclave: MrEnclave::new(attest::constants::ENCLAVE_ID_CDSI_STAGING_AND_PROD),
+    mr_enclave: MrEnclave::new(attest::constants::ENCLAVE_ID_CDSI),
     raft_config: (),
 };
 
@@ -185,7 +185,7 @@ pub(crate) const ENDPOINT_PARAMS_SVR2_STAGING: EndpointParams<'static, SgxPreQua
     };
 
 pub(crate) const ENDPOINT_PARAMS_CDSI_PROD: EndpointParams<'static, Cdsi> = EndpointParams {
-    mr_enclave: MrEnclave::new(attest::constants::ENCLAVE_ID_CDSI_STAGING_AND_PROD),
+    mr_enclave: MrEnclave::new(attest::constants::ENCLAVE_ID_CDSI),
     raft_config: (),
 };
 pub(crate) const ENDPOINT_PARAMS_SVR2_PROD: EndpointParams<'static, SgxPreQuantum> =
@@ -288,7 +288,7 @@ impl ConnectionConfig {
     pub fn connection_params_with_fallback(&self) -> Vec<ConnectionParams> {
         let direct = self.direct_connection_params();
         if let Some(proxy) = &self.proxy {
-            let mut rng = thread_rng();
+            let mut rng = rng();
             let [params_a, params_b] = proxy.configs.each_ref().map(|config| {
                 config.shuffled_connection_params(
                     proxy.path_prefix,
@@ -539,6 +539,7 @@ mod test {
         HttpRouteFragment, HttpsTlsRoute, RouteProvider as _, TcpRoute, TlsRoute, TlsRouteFragment,
         UnresolvedHost,
     };
+    use libsignal_net_infra::testutil::no_network_change_events;
     use libsignal_net_infra::Alpn;
     use test_case::test_matrix;
 
@@ -663,7 +664,7 @@ mod test {
         // The point of this test isn't to test the resolver, but to use it to test something else.
         // So, I directly access the raw CustomDnsResolver::resolve method.
         // Other usages should use the higher level DnsResolver::lookup instead.
-        let resolver = build_custom_resolver_cloudflare_doh();
+        let resolver = build_custom_resolver_cloudflare_doh(&no_network_change_events());
 
         let (hostname, static_hardcoded_ips) = config.static_fallback();
 

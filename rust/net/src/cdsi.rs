@@ -452,7 +452,8 @@ impl From<&LookupRequest> for LookupRequestDebugInfo {
 
 /// Numeric code set by the server on the websocket close frame.
 #[repr(u16)]
-#[derive(Copy, Clone, num_enum::TryFromPrimitive, strum::IntoStaticStr)]
+#[derive(Copy, Clone, derive_more::TryFrom, strum::IntoStaticStr)]
+#[try_from(repr)]
 enum CdsiCloseCode {
     InvalidArgument = 4003,
     RateLimitExceeded = 4008,
@@ -516,7 +517,7 @@ mod test {
     use libsignal_net_infra::dns::DnsResolver;
     use libsignal_net_infra::route::testutils::ConnectFn;
     use libsignal_net_infra::route::DirectOrProxyProvider;
-    use libsignal_net_infra::utils::ObservableEvent;
+    use libsignal_net_infra::testutil::no_network_change_events;
     use libsignal_net_infra::ws::testutil::fake_websocket;
     use libsignal_net_infra::ws2::attested::testutil::{
         run_attested_server, AttestedServerOutput, FAKE_ATTESTATION,
@@ -997,7 +998,7 @@ mod test {
         let ws2_config = EnclaveEndpointConnection::new(
             &env.cdsi,
             Duration::from_secs(10),
-            &ObservableEvent::default(),
+            &no_network_change_events(),
         )
         .ws2_config();
         let auth = Auth {
@@ -1007,8 +1008,8 @@ mod test {
 
         let connect_state =
             ConnectState::new_with_transport_connector(SUGGESTED_CONNECT_CONFIG, connector);
-        let dns_resolver = DnsResolver::new();
-        let network_change_event = ObservableEvent::new();
+        let network_change_event = no_network_change_events();
+        let dns_resolver = DnsResolver::new(&network_change_event);
         let result = CdsiConnection::connect_with(
             ConnectionResources {
                 connect_state: &connect_state,

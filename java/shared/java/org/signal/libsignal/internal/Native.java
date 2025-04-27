@@ -13,10 +13,12 @@ import org.signal.libsignal.protocol.state.SessionStore;
 import org.signal.libsignal.protocol.state.PreKeyStore;
 import org.signal.libsignal.protocol.state.SignedPreKeyStore;
 import org.signal.libsignal.protocol.state.KyberPreKeyStore;
+import org.signal.libsignal.protocol.SignedPublicPreKey;
 import org.signal.libsignal.protocol.groups.state.SenderKeyStore;
 import org.signal.libsignal.protocol.logging.Log;
 import org.signal.libsignal.protocol.logging.SignalProtocolLogger;
 import org.signal.libsignal.net.internal.BridgeChatListener;
+import org.signal.libsignal.net.internal.ConnectChatBridge;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -204,6 +206,10 @@ public final class Native {
   public static native byte[] BackupKey_DeriveMediaId(byte[] backupKey, String mediaName);
   public static native byte[] BackupKey_DeriveThumbnailTransitEncryptionKey(byte[] backupKey, byte[] mediaId);
 
+  public static native void BridgedStringMap_Destroy(long handle);
+  public static native void BridgedStringMap_insert(long map, String key, String value);
+  public static native long BridgedStringMap_new(int initialCapacity);
+
   public static native void CallLinkAuthCredentialPresentation_CheckValidContents(byte[] presentationBytes) throws Exception;
   public static native byte[] CallLinkAuthCredentialPresentation_GetUserId(byte[] presentationBytes);
   public static native void CallLinkAuthCredentialPresentation_Verify(byte[] presentationBytes, long now, byte[] serverParamsBytes, byte[] callLinkParamsBytes) throws Exception;
@@ -220,6 +226,7 @@ public final class Native {
   public static native void CallLinkSecretParams_CheckValidContents(byte[] paramsBytes) throws Exception;
   public static native byte[] CallLinkSecretParams_DecryptUserId(byte[] paramsBytes, byte[] userId) throws Exception;
   public static native byte[] CallLinkSecretParams_DeriveFromRootKey(byte[] rootKey);
+  public static native byte[] CallLinkSecretParams_EncryptUserId(byte[] paramsBytes, byte[] userId);
   public static native byte[] CallLinkSecretParams_GetPublicParams(byte[] paramsBytes);
 
   public static native long Cds2ClientState_New(byte[] mrenclave, byte[] attestationMsg, long currentTimestamp) throws Exception;
@@ -233,11 +240,12 @@ public final class Native {
 
   public static native void ConnectionManager_Destroy(long handle);
   public static native void ConnectionManager_clear_proxy(long connectionManager);
-  public static native long ConnectionManager_new(int environment, String userAgent);
+  public static native long ConnectionManager_new(int environment, String userAgent, long remoteConfig);
   public static native void ConnectionManager_on_network_change(long connectionManager);
   public static native void ConnectionManager_set_censorship_circumvention_enabled(long connectionManager, boolean enabled);
   public static native void ConnectionManager_set_invalid_proxy(long connectionManager);
   public static native void ConnectionManager_set_proxy(long connectionManager, long proxy);
+  public static native void ConnectionManager_set_remote_config(long connectionManager, long remoteConfig);
 
   public static native void ConnectionProxyConfig_Destroy(long handle);
   public static native long ConnectionProxyConfig_new(String scheme, String host, int port, String username, String password) throws Exception;
@@ -336,6 +344,7 @@ public final class Native {
   public static native void GroupSendDerivedKeyPair_CheckValidContents(byte[] bytes) throws Exception;
   public static native byte[] GroupSendDerivedKeyPair_ForExpiration(long expiration, long serverParams);
 
+  public static native byte[] GroupSendEndorsement_CallLinkParams_ToToken(byte[] endorsement, byte[] callLinkSecretParamsSerialized);
   public static native void GroupSendEndorsement_CheckValidContents(byte[] bytes) throws Exception;
   public static native byte[] GroupSendEndorsement_Combine(ByteBuffer[] endorsements);
   public static native byte[] GroupSendEndorsement_Remove(byte[] endorsement, byte[] toRemove);
@@ -427,7 +436,6 @@ public final class Native {
   public static native void MessageBackupKey_Destroy(long handle);
   public static native long MessageBackupKey_FromAccountEntropyPool(String accountEntropy, byte[] aci);
   public static native long MessageBackupKey_FromBackupKeyAndBackupId(byte[] backupKey, byte[] backupId);
-  public static native long MessageBackupKey_FromMasterKey(byte[] masterKey, byte[] aci);
   public static native long MessageBackupKey_FromParts(byte[] hmacKey, byte[] aesKey);
   public static native byte[] MessageBackupKey_GetAesKey(long key);
   public static native byte[] MessageBackupKey_GetHmacKey(long key);
@@ -536,6 +544,36 @@ public final class Native {
   public static native void ReceiptCredential_CheckValidContents(byte[] buffer) throws Exception;
   public static native long ReceiptCredential_GetReceiptExpirationTime(byte[] receiptCredential);
   public static native long ReceiptCredential_GetReceiptLevel(byte[] receiptCredential);
+
+  public static native void RegisterAccountResponse_Destroy(long handle);
+  public static native long RegisterAccountResponse_GetEntitlementBackupExpirationSeconds(long response);
+  public static native long RegisterAccountResponse_GetEntitlementBackupLevel(long response);
+  public static native Object[] RegisterAccountResponse_GetEntitlementBadges(long response);
+  public static native byte[] RegisterAccountResponse_GetIdentity(long response, int identityType);
+  public static native String RegisterAccountResponse_GetNumber(long response);
+  public static native boolean RegisterAccountResponse_GetReregistration(long response);
+  public static native boolean RegisterAccountResponse_GetStorageCapable(long response);
+  public static native byte[] RegisterAccountResponse_GetUsernameHash(long response);
+  public static native UUID RegisterAccountResponse_GetUsernameLinkHandle(long response);
+
+  public static native CompletableFuture<Long> RegistrationService_CreateSession(long asyncRuntime, Object createSession, ConnectChatBridge connectChat);
+  public static native void RegistrationService_Destroy(long handle);
+  public static native long RegistrationService_RegistrationSession(long service);
+  public static native CompletableFuture<Void> RegistrationService_RequestPushChallenge(long asyncRuntime, long service, String pushToken, Object pushTokenType);
+  public static native CompletableFuture<Void> RegistrationService_RequestVerificationCode(long asyncRuntime, long service, String transport, String client, Object[] languages);
+  public static native CompletableFuture<Long> RegistrationService_ResumeSession(long asyncRuntime, String sessionId, String number, ConnectChatBridge connectChat);
+  public static native String RegistrationService_SessionId(long service);
+  public static native CompletableFuture<Void> RegistrationService_SubmitCaptcha(long asyncRuntime, long service, String captchaValue);
+  public static native CompletableFuture<Void> RegistrationService_SubmitPushChallenge(long asyncRuntime, long service, String pushChallenge);
+  public static native CompletableFuture<Void> RegistrationService_SubmitVerificationCode(long asyncRuntime, long service, String code);
+
+  public static native void RegistrationSession_Destroy(long handle);
+  public static native boolean RegistrationSession_GetAllowedToRequestCode(long session);
+  public static native int RegistrationSession_GetNextCallSeconds(long session);
+  public static native int RegistrationSession_GetNextSmsSeconds(long session);
+  public static native int RegistrationSession_GetNextVerificationAttemptSeconds(long session);
+  public static native Object[] RegistrationSession_GetRequestedInformation(long session);
+  public static native boolean RegistrationSession_GetVerified(long session);
 
   public static native void SanitizedMetadata_Destroy(long handle);
   public static native long SanitizedMetadata_GetDataLen(long sanitized);
@@ -651,17 +689,12 @@ public final class Native {
   public static native boolean SessionRecord_CurrentRatchetKeyMatches(long s, long key) throws Exception;
   public static native long SessionRecord_Deserialize(byte[] data) throws Exception;
   public static native void SessionRecord_Destroy(long handle);
-  public static native byte[] SessionRecord_GetAliceBaseKey(long obj) throws Exception;
   public static native byte[] SessionRecord_GetLocalIdentityKeyPublic(long obj) throws Exception;
   public static native int SessionRecord_GetLocalRegistrationId(long obj) throws Exception;
-  public static native byte[] SessionRecord_GetReceiverChainKeyValue(long sessionState, long key) throws Exception;
   public static native byte[] SessionRecord_GetRemoteIdentityKeyPublic(long obj) throws Exception;
   public static native int SessionRecord_GetRemoteRegistrationId(long obj) throws Exception;
-  public static native byte[] SessionRecord_GetSenderChainKeyValue(long obj) throws Exception;
   public static native int SessionRecord_GetSessionVersion(long s) throws Exception;
   public static native boolean SessionRecord_HasUsableSenderChain(long s, long now) throws Exception;
-  public static native long SessionRecord_InitializeAliceSession(long identityKeyPrivate, long identityKeyPublic, long basePrivate, long basePublic, long theirIdentityKey, long theirSignedPrekey, long theirRatchetKey) throws Exception;
-  public static native long SessionRecord_InitializeBobSession(long identityKeyPrivate, long identityKeyPublic, long signedPrekeyPrivate, long signedPrekeyPublic, long ephPrivate, long ephPublic, long theirIdentityKey, long theirBaseKey) throws Exception;
   public static native long SessionRecord_NewFresh();
   public static native byte[] SessionRecord_Serialize(long obj) throws Exception;
 

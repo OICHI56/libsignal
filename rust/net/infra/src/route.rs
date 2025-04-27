@@ -510,8 +510,8 @@ pub mod testutils {
     use std::future::Future;
     use std::net::IpAddr;
 
+    use rand::distr::uniform::{UniformSampler, UniformUsize};
     use rand::rngs::mock::StepRng;
-    use rand::Rng as _;
 
     pub use super::connect::testutils::*;
     pub use super::resolve::testutils::*;
@@ -570,7 +570,8 @@ pub mod testutils {
 
     impl RouteProviderContext for FakeContext {
         fn random_usize(&self) -> usize {
-            self.rng.borrow_mut().gen()
+            UniformUsize::sample_single_inclusive(0, usize::MAX, &mut self.rng.borrow_mut())
+                .unwrap()
         }
     }
 
@@ -943,13 +944,12 @@ mod test {
             ("G", ip_addr!(v6, "3fff::7")),
         ];
         let (connector, mut connection_responders) = FakeConnector::new();
-        let outcomes = NoDelay;
         let (resolver, mut resolution_responders) = FakeResolver::new();
 
         let _connection_task = tokio::spawn(async move {
             connect(
                 &RouteResolver::default(),
-                &outcomes,
+                NoDelay,
                 HOSTNAMES
                     .iter()
                     .map(|(h, _addr)| FakeRoute(UnresolvedHost::from(Arc::from(*h)))),
@@ -1017,7 +1017,6 @@ mod test {
         ];
 
         let (connector, mut connection_responders) = FakeConnector::<FakeRoute<IpAddr>>::new();
-        let outcomes = NoDelay;
         let (resolver, mut resolution_responders) = FakeResolver::new();
 
         const SUCCESSFUL_ROUTE_INDEX: usize = 4;
@@ -1050,7 +1049,7 @@ mod test {
 
         let (result, updates) = connect(
             &RouteResolver::default(),
-            &outcomes,
+            NoDelay,
             HOSTNAMES
                 .iter()
                 .map(|(h, _addr)| FakeRoute(UnresolvedHost::from(Arc::from(*h)))),
@@ -1103,7 +1102,6 @@ mod test {
         ];
 
         let (connector, mut connection_responders) = FakeConnector::<FakeRoute<IpAddr>>::new();
-        let outcomes = NoDelay;
         let (resolver, mut resolution_responders) = FakeResolver::new();
 
         let connect_task = tokio::spawn(async move {
@@ -1129,7 +1127,7 @@ mod test {
 
         let (result, _updates) = connect(
             &RouteResolver::default(),
-            &outcomes,
+            NoDelay,
             HOSTNAMES
                 .iter()
                 .map(|(h, _addr)| FakeRoute(UnresolvedHost::from(Arc::from(*h)))),

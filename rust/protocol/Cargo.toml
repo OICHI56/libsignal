@@ -32,7 +32,6 @@ hmac = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
 log = { workspace = true }
-num_enum = { workspace = true }
 pqcrypto-kyber = { workspace = true, features = ["std"] }
 pqcrypto-traits = { workspace = true }
 prost = { workspace = true }
@@ -63,6 +62,7 @@ criterion = { workspace = true }
 env_logger = { workspace = true }
 futures-util = { workspace = true }
 proptest = { workspace = true }
+rand_core = { workspace = true }
 
 [build-dependencies]
 prost-build = { workspace = true }
